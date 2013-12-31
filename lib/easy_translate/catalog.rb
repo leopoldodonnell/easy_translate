@@ -9,7 +9,7 @@ module EasyTranslate
     #
     # This is useful for development when you don't necessarily
     # want to go out to google for translation each run.
-    def self.debug_translator(&block)
+    def debug_translator(&block)
       @debug_translator = block
     end
     
