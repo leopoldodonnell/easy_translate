@@ -4,6 +4,15 @@ module EasyTranslate
 
   module Catalog
     
+    # Set a debug translator block that will receive a String
+    # and respond with translated String.
+    #
+    # This is useful for development when you don't necessarily
+    # want to go out to google for translation each run.
+    def self.debug_translator(&block)
+      @debug_translator = block
+    end
+    
     # Create a Rails Language Catalogs (locale dictionary) for one or more languages
     # by translating a source Catalog.
     #
@@ -86,7 +95,12 @@ module EasyTranslate
           to_hash[key] = {} unless to_hash[key]
           translate_hash(value, to_hash[key], from_language, to_language, allow_overwrites)
         elsif to_hash[key].nil? or allow_overwrites
-          to_hash[key] = self.translate(value, :from => from_language.to_sym, :to => to_language.to_sym)
+          to_hash[key] =
+            if (@@debug_translator)
+              @@debug_translator(value)
+            else
+              to_hash[key] = self.translate(value, :from => from_language.to_sym, :to => to_language.to_sym)
+            end
         end
       }
     end
