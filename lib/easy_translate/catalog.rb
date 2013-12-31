@@ -97,7 +97,7 @@ module EasyTranslate
         elsif to_hash[key].nil? or allow_overwrites
           to_hash[key] =
             if (@@debug_translator)
-              @@debug_translator(value)
+              @@debug_translator.call(value)
             else
               to_hash[key] = self.translate(value, :from => from_language.to_sym, :to => to_language.to_sym)
             end
