@@ -122,7 +122,7 @@ module EasyTranslate
         if value.kind_of? Hash
           debug_translation value
         else
-          hash[key] = @debug_translator.call(value)
+          hash[key] = @debug_translator.call(value) if value
         end
       }
     end
