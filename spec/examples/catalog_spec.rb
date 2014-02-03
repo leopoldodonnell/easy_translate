@@ -23,6 +23,9 @@ describe EasyTranslate::Catalog do
       f_lang << content
       f_lang.close
     end
+    
+    EasyTranslate::debug_translator { |value| "Hallo Welt" }
+    
   end
   
   after :all do
@@ -30,24 +33,25 @@ describe EasyTranslate::Catalog do
   end
 
   it 'should translate a catalog file into destination language files' do
-    EasyTranslate::Translation::TranslationRequest.stub(:new).and_return(OpenStruct.new({
-      :perform_raw => '{"data":{"translations":[{"translatedText":"Hallo Welt"}]}}',
-      :multi? => false
-    }))
+    # EasyTranslate::Translation::TranslationRequest.stub(:new).and_return(OpenStruct.new({
+    #   :perform_raw => '{"data":{"translations":[{"translatedText":"Hallo Welt"}]}}',
+    #   :multi? => false
+    # }))
     EasyTranslate::translate_catalog!('catalog_spec_test/catalog.en.yml', 'fr', 'de')
     
     File.exists?('catalog_spec_test/catalog.fr.yml').should == true
     File.exists?('catalog_spec_test/catalog.de.yml').should == true
     
     de_translation = YAML::load(File.open 'catalog_spec_test/catalog.de.yml')
+    puts "translation = #{de_translation}"
     de_translation['de']['section_2']['item_2'].should  == 'Hallo Welt'
   end
   
   it 'should translate a catalog file into destination language without overwiting existing translations' do
-    EasyTranslate::Translation::TranslationRequest.stub(:new).and_return(OpenStruct.new({
-      :perform_raw => '{"data":{"translations":[{"translatedText":"Hallo Welt"}]}}',
-      :multi? => false
-    }))
+    # EasyTranslate::Translation::TranslationRequest.stub(:new).and_return(OpenStruct.new({
+    #   :perform_raw => '{"data":{"translations":[{"translatedText":"Hallo Welt"}]}}',
+    #   :multi? => false
+    # }))
     EasyTranslate::translate_catalog('catalog_spec_test/catalog.en.yml', 'sp')
     File.exists?('catalog_spec_test/catalog.sp.yml').should == true
     

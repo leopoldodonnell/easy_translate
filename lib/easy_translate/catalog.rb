@@ -1,4 +1,5 @@
 require 'yaml'
+require 'active_support/core_ext/hash'
 
 module EasyTranslate
 
@@ -51,13 +52,19 @@ module EasyTranslate
       catalog_hash  = YAML::load(File.open catalog_filename)
       from_language = catalog_hash.keys.first
 
+      source_html = catalog_hash.to_xml
+      
       languages.each { |to_language|
-        translated_hash = init_to_hash(catalog_filename, from_language, to_language)
+        translated_hash = translate_html(source_html, from_language, to_language)
+        
+        # fix the language identifier in the translated file to the new language
+        translated_hash[to_language] = translated_hash.delete from_language
 
-        # Start translating after the initial node because it contains the lanuage identifier
-        translate_hash(catalog_hash[from_language], translated_hash[to_language], from_language, to_language, allow_overwrites)
+        to_filename = get_to_filename(catalog_filename, from_language, to_language)
+        
+        translated_hash = merge_translation(to_filename, translated_hash) unless allow_overwrites
 
-        write_translated_file(get_to_filename(catalog_filename, from_language, to_language), translated_hash)
+        write_translated_file(to_filename, translated_hash)
       }
     end
     
@@ -66,19 +73,33 @@ module EasyTranslate
     def get_to_filename(from_filename, from_language, to_language)
       from_filename.gsub(Regexp.new("#{from_language}\."), "#{to_language}.")
     end
-    
-    # Initialize the Hash used for the destination 'to_language'. If a
-    # file exists for the 'to_language' use that, otherwise create a
-    # starter Hash with the initial node for the 'to_language'.
-    def init_to_hash(from_filename,from_language, to_language)
-      to_filename = get_to_filename(from_filename, from_language, to_language)
-      if File.exists? to_filename
-        YAML::load(File.open to_filename)
-      else
-        { to_language => {} }
-      end
+
+    # Merge the new translation into the old translation if it exists
+    #
+    # @returns the merged translation
+    def merge_translation(filename, translated_hash)
+      return translated_hash unless File.exists? filename
+      
+      prev_translation = YAML::load(File.open filename) 
+      recursive_merge(translated_hash, prev_translation)
     end
     
+    # Recursive merge new items from one hash into another
+    # without clobbering the original items.
+    #
+    # @param [Hash] new_hash - has the newer items
+    # @param [Hash] old_hash - has the original items
+    def recursive_merge(new_hash, old_hash)
+      # Merge in this level using the old translation when it exists
+      new_hash.each { |key, value|
+        if value.kind_of? Hash and old_hash.has_key? key
+          recursive_merge(value, old_hash[key])
+        elsif old_hash.has_key? key
+          new_hash[key] = old_hash[key]
+        end
+      }
+    end
+        
     # Create or overwrite the translated Catalog with owner rw and
     # group|other as read only.
     def write_translated_file(filename, translated_hash)
@@ -87,25 +108,24 @@ module EasyTranslate
       translated_file.close
     end
     
-    # Update the translated Hash with translations by recursing through a source
-    # Hash of message keys and sub-hashes.
-    def translate_hash(from_hash, to_hash, from_language, to_language, allow_overwrites)
-      from_hash.each { |key, value|
+    def translate_html(html, from_language, to_language)
+      if @debug_translator
+        debug_translation(Hash.from_xml(html)['hash'])
+      else
+        Hash.from_xml(self.translate(html, :from => from_language.to_sym, :to => to_language.to_sym))['hash']
+      end
+    end
+
+    # Use the debug_translation block to translate items.
+    def debug_translation(hash)
+      hash.each { |key, value|
         if value.kind_of? Hash
-          to_hash[key] = {} unless to_hash[key]
-          translate_hash(value, to_hash[key], from_language, to_language, allow_overwrites)
-        elsif to_hash[key].nil? or allow_overwrites
-          to_hash[key] =
-            if value.nil?
-              value
-            elsif 
-              @debug_translator then @debug_translator.call(value)
-            else
-              to_hash[key] = self.translate(value, :from => from_language.to_sym, :to => to_language.to_sym)
-            end
+          debug_translation value
+        else
+          hash[key] = @debug_translator.call(value)
         end
       }
     end
-
+    
   end
 end
