@@ -112,8 +112,19 @@ module EasyTranslate
       if @debug_translator
         debug_translation(Hash.from_xml(html)['hash'])
       else
-        Hash.from_xml(self.translate(html, :from => from_language.to_sym, :to => to_language.to_sym))['hash']
+        Hash.from_xml(unescape(self.translate(escape html, :from => from_language.to_sym, :to => to_language.to_sym)))['hash']
       end
+    end
+    
+    # Prevent control characters from being translated by putting them
+    # into a 'notranslate' span
+    def escape(html)
+      html.gsub(/(\\[nrt])+|(\{\S*\})/, "<span class='notranslate'>\\0</span>")
+    end
+    
+    # Remove the 'notranslate' spans from html
+    def unescape(html)
+      html.gsub(/<span class='notranslate[^>]+>([^<]*)<\/span>/,"\\1")
     end
 
     # Use the debug_translation block to translate items.
