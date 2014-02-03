@@ -119,12 +119,12 @@ module EasyTranslate
     # Prevent control characters from being translated by putting them
     # into a 'notranslate' span
     def escape(html)
-      html.gsub(/(\\[nrt])+|(\{\S*\})/, "<span class='notranslate'>\\0</span>")
+      html.gsub(/(\\[nrt])+|(\{\S*\})/m, "<span class='notranslate'>\\0</span>")
     end
     
     # Remove the 'notranslate' spans from html
     def unescape(html)
-      html.gsub(/<span class='notranslate[^>]+>([^<]*)<\/span>/,"\\1")
+      html.gsub(/<span class='notranslate[^>]+>([^<]*)<\/span>/m,"\\1")
     end
 
     # Use the debug_translation block to translate items.
