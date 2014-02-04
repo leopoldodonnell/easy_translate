@@ -52,7 +52,7 @@ module EasyTranslate
       catalog_hash  = YAML::load(File.open catalog_filename)
       from_language = catalog_hash.keys.first
 
-      source_html = catalog_hash.to_xml
+      source_html = to_html(catalog_hash)
       
       languages.each { |to_language|
         translated_hash = translate_html(source_html, from_language, to_language)
@@ -110,16 +110,67 @@ module EasyTranslate
     
     def translate_html(html, from_language, to_language)
       if @debug_translator
-        debug_translation(Hash.from_xml(html)['hash'])
+        debug_translation(from_html(html))
       else
-        Hash.from_xml(unescape(self.translate(escape html, :from => from_language.to_sym, :to => to_language.to_sym)))['hash']
+        from_html(unescape(self.translate(escape html, :from => from_language.to_sym, :to => to_language.to_sym)))
       end
+    end
+    
+    # Restore the HTML used in to_html back into a Hash
+    def from_html(html)
+      # Use a stack to deal with hierarchical depth
+      stack = [{}]
+  
+      while html and html.length > 0
+        # Match a content block - just add the content to the div's key value
+        matched = /\A<div name='(?<key>\w+)'\s*>\s*(?<content>[^<]+)<\/div>(?<the_rest>.*\z)/.match(html)
+        if matched and matched[:content]
+          key = matched[:key]
+          stack.last[key] = matched[:content]
+          html = matched[:the_rest]
+          next
+        end
+    
+        # Match a hierachy - Add a new Hash to the current Hash at key and then
+        # push that Hash onto the stack for its contents
+        matched = /\A<div name='(?<key>\w+)'\s*>\s*(?<the_rest>.*\z)/.match(html)
+        if matched and matched[:key]
+          key = matched[:key]
+          stack.last[key] = {}
+          stack.push stack.last[key]
+          html = matched[:the_rest]      
+          next
+        end
+    
+        # Consume an end div and pop back up to the parent Hash
+        matched = /\A\s*<\/div>(?<the_rest>.*\z)/.match(html)
+        html = matched[:the_rest]
+        stack.pop
+      end  
+
+      stack.first
+    end
+
+    # Convert a Hash by Catalog keys into a HTML so that Google
+    # will convert it without translating the key names
+    def to_html(hash)
+      html = ""
+      hash.each do |key, value|
+        html << "<div name='#{key}'>"
+        html << if value.kind_of? Hash
+          to_html value
+        else
+          value
+        end
+        html << "</div>"
+      end
+      html
     end
     
     # Prevent control characters from being translated by putting them
     # into a 'notranslate' span
     def escape(html)
-      html.gsub(/(\\\\[nrt])+|(\{\S*\})/m, "<span class='notranslate'>\\0</span>")
+      html.gsub(/(\\[nrt])+|(\{\S*\})/m, "<span class='notranslate'>\\0</span>")
     end
     
     # Remove the 'notranslate' spans from html
