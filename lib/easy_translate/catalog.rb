@@ -161,7 +161,7 @@ module EasyTranslate
         html << if value.kind_of? Hash
           to_html value
         else
-          value
+          value or ''
         end
         html << "</div>"
       end
