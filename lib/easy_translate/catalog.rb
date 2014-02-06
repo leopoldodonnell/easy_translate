@@ -1,5 +1,5 @@
 require 'yaml'
-require 'active_support/core_ext/hash'
+require 'cgi'
 
 module EasyTranslate
 
@@ -112,7 +112,8 @@ module EasyTranslate
       if @debug_translator
         debug_translation(from_html(html))
       else
-        from_html(unescape(self.translate(escape html, :from => from_language.to_sym, :to => to_language.to_sym)))
+        translated = self.translate(escape(html), :from => from_language.to_sym, :to => to_language.to_sym)
+        from_html(unescape(translated))
       end
     end
     
@@ -123,17 +124,17 @@ module EasyTranslate
   
       while html and html.length > 0
         # Match a content block - just add the content to the div's key value
-        matched = /\A<div name='(?<key>\w+)'\s*>\s*(?<content>[^<]+)<\/div>(?<the_rest>.*\z)/.match(html)
+        matched = /\A<div name='(?<key>\w+)'[^>]*>(?<content>[^<]*)<\/div>(?<the_rest>.*\z)/.match(html)
         if matched and matched[:content]
           key = matched[:key]
-          stack.last[key] = matched[:content]
+          stack.last[key] = matched[:content].strip
           html = matched[:the_rest]
           next
         end
     
         # Match a hierachy - Add a new Hash to the current Hash at key and then
         # push that Hash onto the stack for its contents
-        matched = /\A<div name='(?<key>\w+)'\s*>\s*(?<the_rest>.*\z)/.match(html)
+        matched = /\A<div name='(?<key>\w+)'[^>]*>\s*(?<the_rest>.*\z)/.match(html)
         if matched and matched[:key]
           key = matched[:key]
           stack.last[key] = {}
@@ -175,7 +176,7 @@ module EasyTranslate
     
     # Remove the 'notranslate' spans from html
     def unescape(html)
-      html.gsub(/<span class='notranslate[^>]+>([^<]*)<\/span>/m,"\\1")
+      CGI.unescapeHTML(html.gsub(/<span class='notranslate[^>]*>([^<]*)<\/span>/,"\\1"))
     end
 
     # Use the debug_translation block to translate items.
