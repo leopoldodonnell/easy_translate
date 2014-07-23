@@ -90,11 +90,12 @@ module EasyTranslate
     # @param [Hash] new_hash - has the newer items
     # @param [Hash] old_hash - has the original items
     def recursive_merge(new_hash, old_hash)
+      # Old Hash is supposed to be a Hash unless it was an empty
+      # hierarchy.
+      return if old_hash.nil? || old_hash.kind_of?(String)
+      
       # Merge in this level using the old translation when it exists
       new_hash.each { |key, value|
-        # handle an empty old hierarchy
-        old_hash = {} if old_hash.is_a? String
-        
         if value.kind_of? Hash and old_hash.has_key? key
           recursive_merge(value, old_hash[key])
         elsif old_hash.has_key? key
