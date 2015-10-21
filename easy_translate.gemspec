@@ -14,5 +14,7 @@ spec = Gem::Specification.new do |s|
   s.require_paths = ['lib']
   s.summary = 'Google Translate API Wrapper for Ruby'
   s.test_files = Dir.glob('spec/*.rb')
+  s.bindir        = "bin"
+  s.executables   = ['easy-translate']
   s.version = EasyTranslate::VERSION
 end

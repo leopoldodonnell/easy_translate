@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require "optparse"
+require 'bundler'
+require "easy_translate"
+
+OPTIONS = {key: ENV['GOOGLE_TRANSLATE_KEY']}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "\nUsage: easy-translate [options] source_locale.yml [destination_locale]+\n" + \
+  "Example > easy-translate -k abcdefg locale/en.yml fr es jp"
+
+  opts.on("-k", "-key api_key", "The google translate API key. Defaults to GOOGLE_TRANSLATE_KEY environment variable") do |key|
+    OPTIONS[:key] = key
+  end
+  
+end
+
+# Parse the options and remove options from ARGV
+optparse.parse!
+
+source = ARGV.shift
+destination_locales = ARGV
+
+puts("Error: missing arguments!#{optparse.banner}\n") && exit(1) unless source && destination_locales.count > 0
+
+EasyTranslate.api_key = OPTIONS[:key]
+
+destination_locales.each do |dest_locale|
+  puts "Translating #{source} into #{dest_locale}"
+  EasyTranslate.translate_catalog(source, dest_locale)
+end
+
