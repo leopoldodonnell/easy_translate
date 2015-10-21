@@ -108,7 +108,7 @@ module EasyTranslate
     # group|other as read only.
     def write_translated_file(filename, translated_hash)
       translated_file = File.new(filename, File::CREAT|File::TRUNC|File::RDWR, 0644)    
-      translated_file << translated_hash.to_yaml
+      translated_file << translated_hash.to_yaml.gsub("---\n", '')
       translated_file.close
     end
     
